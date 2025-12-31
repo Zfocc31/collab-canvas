@@ -1,50 +1,61 @@
-# Collab-Canvas
+# Collab Canvas
 
-A real-time collaborative whiteboard built with the **MERN** stack and **Socket.IO** for live drawing and cursor sharing between users — without any authentication. Just share a room code and draw together!
+A real-time collaborative whiteboard built with the **MERN stack** and **Socket.IO** that allows multiple users to draw together instantly — no authentication required.  
+Just share a room code and start collaborating.
+
 ---
 
 ## 🚀 Project Overview
 
-This project is a whiteboard web application that allows multiple users to join a shared room and draw together in real time. Users can join rooms by entering simple alphanumeric codes, and all drawing and cursor movements are synchronized across connected users instantly.
+Collab Canvas is a web-based collaborative whiteboard where users can join a shared room using a simple alphanumeric code and draw together in real time.  
+All drawing actions are synchronized across connected users, and **late joiners automatically receive the existing canvas state**.
+
+This project focuses on real-time communication, event synchronization, and clean system design.
 
 ---
 
 ## ⚙️ Tech Stack
 
-| Layer         | Technology         |
-|---------------|--------------------|
-| Frontend      | React.js           |
-| Backend       | Node.js + Express  |
-| Database      | MongoDB            |
-| Real-time     | Socket.IO          |
-| Styling       | Tailwind CSS / CSS |
+| Layer | Technology |
+|------|-----------|
+| Frontend | React.js (Vite) |
+| Backend | Node.js + Express |
+| Database | MongoDB |
+| Real-time | Socket.IO |
+| Styling | Tailwind CSS / CSS |
+| Deployment | Vercel (Frontend), Render (Backend) |
 
 ---
 
 ## ✨ Features
 
 ### ✅ Room Management
-- Enter a 6–8 character alphanumeric room code to join
+- Join rooms using a 6–8 character alphanumeric room code
 - No login or registration required
-- If room doesn't exist, it gets created dynamically
+- Rooms are created dynamically
 
 ### ✅ Drawing Features
-- Pencil tool (black, red, blue, green)
-- Adjustable stroke width with slider
+- Pencil tool with multiple colors
+- Adjustable stroke width
 - Clear canvas button
-- Smooth line drawing using HTML5 Canvas
+- Smooth drawing using HTML5 Canvas
 
 ### ✅ Real-time Collaboration
-- Live drawing sync across all connected users
-- Real-time cursor tracking with unique user colors
-- Live user count for each room
-- All tabs stay in sync 
+- Live drawing synchronization across all users
+- **Late joiners receive the existing canvas state**
+- Active user count per room
+- Multi-tab and multi-user sync
+
+### ⚠️ Cursor Sync (Baseline)
+- Basic real-time cursor sharing
+- Implemented using viewport coordinates
+- Intentionally kept simple for stability
 
 ---
 
 ## 🗂️ Folder Structure
 
-project-root/
+collab-canvas/
 ├── client/ # React frontend
 │ ├── src/
 │ │ ├── components/
@@ -54,162 +65,159 @@ project-root/
 │ │ │ ├── Toolbar.jsx
 │ │ │ └── UserCursors.jsx
 │ │ ├── socket.js
-│ │ └── App.js
+│ │ └── App.jsx
 │ └── package.json
+│
 ├── server/ # Express + Socket.IO backend
-│ ├── models/
-│ │ └── Room.js
-│ ├── routes/
-│ │ └── roomRoutes.js
 │ ├── socket/
 │ │ └── socketHandlers.js
+│ ├── routes/
+│ ├── models/
+│ ├── db/
 │ ├── server.js
 │ └── package.json
-├── README.md
+│
+└── README.md
 
 ---
 
-##  Setup Instructions
+## ⚙️ Setup Instructions
 
-###  Prerequisites
+### Prerequisites
+- Node.js (v16 or above)
+- MongoDB (local or Atlas)
+- npm or yarn
 
-- **Node.js** (v16 or above)
-- **MongoDB** (local or Atlas)
-- **npm** or **yarn**
+---
 
-----
-
-### ⚙️ Installation Steps
-
-#### 1️⃣ Clone the Repository
+### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/collab-whiteboard.git
-cd collab-whiteboard
-```
-#### 2️⃣Backend setup
-
-```bash
+git clone https://github.com/Zfocc31/collab-canvas.git
+cd collab-canvas
+2️⃣ Backend Setup
 cd server
 npm install
-```
-Create a .env file inside the server/ directory:<br/>
-```env
-PORT= 8000 <br/>
-MONGODB_URI=your mongoDB connection string
-```
-
-#### 3️⃣Frontend Setup
-
-```bash
-cd ../client
-npm install
-```
-Create a .env file inside the client/ directory:<br/>
-```env
-VITE_BACKEND_URL=http://localhost:8000
-```
-
-#### Start the frontend:
-```bash
-npm run dev
-```
-----
-
-## API Documentation
-| Method | Endpoint             | Description           |
-| ------ | -------------------- | --------------------- |
-| POST   | `/api/rooms/join`    | Join or create a room |
-| GET    | `/api/rooms/:roomId` | Get room details      |
 
 
-Example POST Request
-```http
-POST /api/rooms/join
-Content-Type: application/json
-
-{
-  "roomId": "abc123"
-}
-```
---------
-
-## Socket.IO Events
-### Client → Server
-- join-room — join a room by roomId
-- cursor-move — send mouse position
-- draw-start — begin a drawing stroke
-- draw-move — continue drawing
-- draw-end — finish the stroke
-- clear-canvas — clear the canvas for all users
-### Server → Client
-- user-count — receive updated number of active users
-- cursor-update — receive cursor positions from others
-- draw-start — begin stroke from another user
-- draw-move — receive stroke path data
-- draw-end — end stroke
-- clear-canvas — clear canvas across all users
-  ----
-  
-## Architecture Overview
-
-```scss
-[Client Browser]
-   ↓ Socket.IO
-[React App - Frontend]
-   ↓ API & Socket.IO
-[Express Server - Backend]
-   ↓
-[MongoDB] (optional for persistence)
-```
------
-
-##  Deployment Guide
-1. Deploy Backend
- Use platforms like:
-- vercel
-- Render 
-- Railway
-- [VPS or Docker Hosting]
-- 
-Ensure:
-- WebSocket transport enabled (transports: ['websocket'])
-- CORS properly configured
-- MongoDB URI (Atlas recommended) in environment
-
-Example .env for production:
-
-```env
+Create a .env file inside server/:
 
 PORT=8000
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/whiteboard
-```
-2. Deploy Frontend
-Use:
-- Vercel
-- Netlify
-
-Set  ``` env VITE_BACKEND_URL=https://your-backend-url.com ``` in your .env.production.
-
-3. MongoDB Atlas
-- Create a cluster on MongoDB Atlas
-- Whitelist your backend IP
-- Replace local URI with Atlas URI in .env
-
--------
-
-## ✅ Status
- - Join/Create room via code
- - Real-time drawing sync
- - Cursor sync
- - Multi-tab sync
- - Clear canvas across all clients
- - Active user tracking
- -----
+MONGODB_URI=your_mongodb_connection_string
 
 
+Start the backend:
+
+npm start
+
+3️⃣ Frontend Setup
+cd ../client
+npm install
+npm run dev
 
 
+Create a .env file inside client/ (for local development):
 
+VITE_BACKEND_URL=http://localhost:8000
 
-  
+🔌 Socket.IO Events
+Client → Server
+
+join-room — join a room by roomId
+
+draw-start — begin a drawing stroke
+
+draw-move — continue drawing
+
+draw-end — finish the stroke
+
+clear-canvas — clear the canvas
+
+cursor-move — send cursor position (baseline)
+
+Server → Client
+
+user-count — updated number of active users
+
+draw-start — start stroke from another user
+
+draw-move — receive stroke path data
+
+draw-end — end stroke
+
+clear-canvas — clear canvas for all users
+
+cursor-update — receive cursor positions
+
+🏗️ Architecture Overview
+[Client Browser]
+        ↓ Socket.IO
+[React Frontend]
+        ↓ API + WebSocket
+[Express Backend]
+        ↓
+[MongoDB] (optional persistence)
+
+🚀 Deployment Guide
+Backend Deployment
+
+Supported platforms:
+
+Render
+
+Railway
+
+VPS / Docker
+
+Ensure:
+
+WebSocket support enabled
+
+Proper CORS configuration
+
+MongoDB Atlas URI set in environment variables
+
+Example production env:
+
+PORT=8000
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/collab_canvas
+
+Frontend Deployment
+
+Supported platforms:
+
+Vercel
+
+Netlify
+
+Set environment variable:
+
+VITE_BACKEND_URL=https://your-backend-url.com
+
+🔮 Future Improvements
+
+Canvas state persistence in database
+
+Canvas-relative cursor tracking
+
+Undo / redo support
+
+Room expiry (TTL)
+
+Usernames and avatars
+
+✅ Current Status
+
+Room-based collaboration ✔
+
+Real-time drawing sync ✔
+
+Late join canvas replay ✔
+
+Cursor sync (baseline) ✔
+
+Multi-user & multi-tab support ✔
+
+👤 Author
+
+Rahul Sinha
