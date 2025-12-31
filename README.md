@@ -1,4 +1,4 @@
-# Collaborative Whiteboard App
+# Collab-Canvas
 
 A real-time collaborative whiteboard built with the **MERN** stack and **Socket.IO** for live drawing and cursor sharing between users — without any authentication. Just share a room code and draw together!
 ---
