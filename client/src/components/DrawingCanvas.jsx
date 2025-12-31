@@ -1,20 +1,26 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 
 const DrawingCanvas = ({ socket, roomId, color, strokeWidth, tool }) => {
   const canvasRef = useRef();
   const ctxRef = useRef();
+
   const [drawing, setDrawing] = useState(false);
 
   const colorRef = useRef(color);
   const widthRef = useRef(strokeWidth);
 
-  // Update refs on prop change
+  // 🔥 Prevent orphan strokes (fix random dots)
+  const hasMovedRef = useRef(false);
+
+  // Keep latest color & width
   useEffect(() => {
     colorRef.current = color;
     widthRef.current = strokeWidth;
   }, [color, strokeWidth]);
 
-  // Setup canvas
+  // ======================
+  // CANVAS SETUP
+  // ======================
   useEffect(() => {
     const canvas = canvasRef.current;
 
@@ -25,31 +31,37 @@ const DrawingCanvas = ({ socket, roomId, color, strokeWidth, tool }) => {
     };
 
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener("resize", resizeCanvas);
 
-    const ctx = canvas.getContext('2d');
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    const ctx = canvas.getContext("2d");
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     ctxRef.current = ctx;
 
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener("resize", resizeCanvas);
     };
   }, []);
 
-  // Drawing events
+  // ======================
+  // LOCAL DRAWING
+  // ======================
   const startDrawing = ({ nativeEvent }) => {
     if (!socket?.connected) return;
 
     const { offsetX, offsetY } = nativeEvent;
     const ctx = ctxRef.current;
+
+    hasMovedRef.current = false;
+
     ctx.beginPath();
     ctx.moveTo(offsetX, offsetY);
-    ctx.strokeStyle = tool === 'eraser' ? '#fff' : colorRef.current;
+    ctx.strokeStyle = tool === "eraser" ? "#fff" : colorRef.current;
     ctx.lineWidth = widthRef.current;
+
     setDrawing(true);
 
-    socket.emit('draw-start', {
+    socket.emit("draw-start", {
       roomId,
       offsetX,
       offsetY,
@@ -63,10 +75,17 @@ const DrawingCanvas = ({ socket, roomId, color, strokeWidth, tool }) => {
 
     const { offsetX, offsetY } = nativeEvent;
     const ctx = ctxRef.current;
+
+    hasMovedRef.current = true;
+
     ctx.lineTo(offsetX, offsetY);
     ctx.stroke();
 
-    socket.emit('draw-move', { roomId, offsetX, offsetY });
+    socket.emit("draw-move", {
+      roomId,
+      offsetX,
+      offsetY,
+    });
   };
 
   const endDrawing = () => {
@@ -75,15 +94,20 @@ const DrawingCanvas = ({ socket, roomId, color, strokeWidth, tool }) => {
     ctxRef.current.closePath();
     setDrawing(false);
 
-    socket.emit('draw-end', { roomId });
+    socket.emit("draw-end", { roomId });
   };
 
-  // Incoming socket events
+  // ======================
+  // SOCKET EVENTS (REMOTE + REPLAY)
+  // ======================
   useEffect(() => {
     if (!socket || !roomId) return;
 
+    const ctx = ctxRef.current;
+
     const handleDrawStart = ({ offsetX, offsetY, color, strokeWidth }) => {
-      const ctx = ctxRef.current;
+      hasMovedRef.current = false;
+
       ctx.beginPath();
       ctx.moveTo(offsetX, offsetY);
       ctx.strokeStyle = color;
@@ -91,30 +115,48 @@ const DrawingCanvas = ({ socket, roomId, color, strokeWidth, tool }) => {
     };
 
     const handleDrawMove = ({ offsetX, offsetY }) => {
-      const ctx = ctxRef.current;
+      hasMovedRef.current = true;
+
       ctx.lineTo(offsetX, offsetY);
       ctx.stroke();
     };
 
     const handleDrawEnd = () => {
-      ctxRef.current.closePath();
+      // ❌ Ignore orphan strokes (prevents random dots)
+      if (!hasMovedRef.current) {
+        ctx.closePath();
+        return;
+      }
+
+      ctx.closePath();
     };
 
     const handleClearCanvas = () => {
       const canvas = canvasRef.current;
-      ctxRef.current.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
 
-    socket.on('draw-start', handleDrawStart);
-    socket.on('draw-move', handleDrawMove);
-    socket.on('draw-end', handleDrawEnd);
-    socket.on('clear-canvas', handleClearCanvas);
+    // 🔥 REPLAY STORED CANVAS FOR LATE JOINERS
+    const handleLoadCanvas = (events) => {
+      events.forEach(({ type, payload }) => {
+        if (type === "draw-start") handleDrawStart(payload);
+        if (type === "draw-move") handleDrawMove(payload);
+        if (type === "draw-end") handleDrawEnd();
+      });
+    };
+
+    socket.on("draw-start", handleDrawStart);
+    socket.on("draw-move", handleDrawMove);
+    socket.on("draw-end", handleDrawEnd);
+    socket.on("clear-canvas", handleClearCanvas);
+    socket.on("load-canvas", handleLoadCanvas);
 
     return () => {
-      socket.off('draw-start', handleDrawStart);
-      socket.off('draw-move', handleDrawMove);
-      socket.off('draw-end', handleDrawEnd);
-      socket.off('clear-canvas', handleClearCanvas);
+      socket.off("draw-start", handleDrawStart);
+      socket.off("draw-move", handleDrawMove);
+      socket.off("draw-end", handleDrawEnd);
+      socket.off("clear-canvas", handleClearCanvas);
+      socket.off("load-canvas", handleLoadCanvas);
     };
   }, [socket, roomId]);
 
